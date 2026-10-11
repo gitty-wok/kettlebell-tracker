@@ -2,18 +2,24 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <meta name="theme-color" content="#0f172a" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="KB Tracker" />
+<link rel="manifest" href="manifest.json" />
+<link rel="icon" href="icon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="icon.svg" />
 <title>Kettlebell A/B Tracker</title>
 <style>
   :root { font-family: -apple-system, system-ui, sans-serif; color:#111827; background:#f8fafc; }
   * { box-sizing: border-box; }
-  body { margin:0; padding-bottom:4.5rem; }
-  header { background:#0f172a; color:#fff; padding:1rem 1.1rem; position:sticky; top:0; z-index:5; }
+  body { margin:0; padding-bottom:5.5rem; -webkit-tap-highlight-color:transparent; }
+  header { background:#0f172a; color:#fff; padding:1rem 1.1rem; padding-top:calc(1rem + env(safe-area-inset-top)); position:sticky; top:0; z-index:5; }
   header h1 { margin:0; font-size:1.05rem; }
   header p { margin:.15rem 0 0; font-size:.75rem; color:#cbd5e1; }
   main { max-width:760px; margin:0 auto; padding:.8rem; }
-  .card { background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding: .9rem; margin-bottom:.8rem; }
+  .card { background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:.9rem; margin-bottom:.8rem; }
   .weeks { display:flex; gap:4px; margin:.7rem 0; }
   .weeks button { flex:1; padding:.5rem 0; border:none; border-radius:8px; background:#e2e8f0; font-weight:600; font-size:.8rem; cursor:pointer; }
   .weeks button.on { background:#0f172a; color:#fff; }
@@ -43,8 +49,9 @@
   .rules { font-size:.78rem; color:#475569; }
   .rules li { margin:.2rem 0; }
   .red { color:#b91c1c; font-weight:600; }
-  .savebtn { position:fixed; bottom:1rem; right:1rem; background:#0f172a; color:#fff; border:none; border-radius:999px; padding:.75rem 1.2rem; font-weight:700; box-shadow:0 4px 12px rgba(0,0,0,.25); cursor:pointer; z-index:10; }
+  .savebtn { position:fixed; bottom:calc(1rem + env(safe-area-inset-bottom)); right:1rem; background:#0f172a; color:#fff; border:none; border-radius:999px; padding:.75rem 1.2rem; font-weight:700; box-shadow:0 4px 12px rgba(0,0,0,.25); cursor:pointer; z-index:10; }
   .saved { background:#16a34a !important; }
+  .inst { position:fixed; bottom:calc(4.5rem + env(safe-area-inset-bottom)); right:1rem; background:#16a34a; color:#fff; border:none; border-radius:12px; padding:.8rem 1rem; font-weight:600; font-size:.8rem; box-shadow:0 4px 12px rgba(0,0,0,.3); cursor:pointer; z-index:10; display:none; }
 </style>
 </head>
 <body>
@@ -53,9 +60,10 @@
   <p>Alternate every other day · 8 weeks · 30–45 min per session</p>
 </header>
 <main id="app"></main>
+<button class="inst" id="instBtn" onclick="installPwa()">📲 Install app</button>
 <button class="savebtn" id="saveBtn" onclick="saveAll()">Save</button>
 <script>
-var LS = "kb-ab-tracker-offline-v1";
+var LS = "kb-ab-tracker-pwa-v1";
 var DATA = {
   A: {
     name: "Day A — Grinds",
@@ -136,10 +144,10 @@ function render() {
     html += '<div class="ex"><h3>' + (idx+1) + '. ' + ex.name + '</h3>';
     html += '<div class="meta"><span class="badge">Target: ' + ex.target + '</span><span class="badge">Rest: ' + ex.rest + '</span><span class="badge">RPE: ' + ex.rpe + '</span></div>';
     html += '<div class="note">' + ex.note + '</div>';
-    html += '<div class="row"><span class="wl">Bell (kg)</span><input type="number" inputmode="decimal" value="'+e.weight+'" onchange="up(\''+ex.id+'\',\'weight\',this.value)"><span class="wl">RPE felt</span><input type="number" inputmode="numeric" min="1" max="10" style="width:3.6rem" value="'+e.rpe+'" onchange="up(\''+ex.id+'\',\'rpe\',this.value)"></div>';
+    html += '<div class="row"><span class="wl">Bell (kg)</span><input type="number" inputmode="decimal" value="'+(e.weight||"")+'" onchange="up(\''+ex.id+'\',\'weight\',this.value)"><span class="wl">RPE felt</span><input type="number" inputmode="numeric" min="1" max="10" style="width:3.6rem" value="'+(e.rpe||"")+'" onchange="up(\''+ex.id+'\',\'rpe\',this.value)"></div>';
     html += '<div class="setrow">';
     e.sets.forEach(function(s, si) {
-      html += '<label class="set '+(s.done?"done":"")+'"><input type="checkbox" '+(s.done?"checked":"")+' onchange="upSet(\''+ex.id+'\','+si+',\'done\',this.checked)"><span style="font-size:.65rem;color:#64748b">S'+(si+1)+'</span><input type="number" inputmode="numeric" placeholder="reps" value="'+s.reps+'" onchange="upSet(\''+ex.id+'\','+si+',\'reps\',this.value)"></label>';
+      html += '<label class="set '+(s.done?"done":"")+'"><input type="checkbox" '+(s.done?"checked":"")+' onchange="upSet(\''+ex.id+'\','+si+',\'done\',this.checked)"><span style="font-size:.65rem;color:#64748b">S'+(si+1)+'</span><input type="number" inputmode="numeric" placeholder="reps" value="'+(s.reps||"")+'" onchange="upSet(\''+ex.id+'\','+si+',\'reps\',this.value)"></label>';
     });
     html += '</div>';
     html += '<textarea placeholder="Notes (pain, form, substitutions)" onchange="up(\''+ex.id+'\',\'notes\',this.value)">'+(e.notes||"")+'</textarea></div>';
@@ -155,13 +163,26 @@ function render() {
     + '</ul></div>';
   document.getElementById("app").innerHTML = html;
 }
-function esc(v){ return String(v).replace(/"/g,"&quot;"); }
-function setWeek(w){ state.week=w; render(); }
+function setWeek(w){ state.week=w; saveAll(); render(); }
 function setDay(d){ state.day=d; render(); }
-function up(id, field, value){ entry(state.day, id)[field] = value; render(); }
-function upSet(id, si, field, value){ entry(state.day, id).sets[si][field] = value; render(); }
+function up(id, field, value){ entry(state.day, id)[field] = value; saveAll(); }
+function upSet(id, si, field, value){ entry(state.day, id).sets[si][field] = value; saveAll(); render(); }
 
 render();
+
+// PWA install prompt + service worker
+var deferredPrompt = null;
+window.addEventListener("beforeinstallprompt", function(e){
+  e.preventDefault();
+  deferredPrompt = e;
+  document.getElementById("instBtn").style.display = "block";
+});
+function installPwa(){
+  if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt = null; document.getElementById("instBtn").style.display = "none"; }
+}
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js").catch(function(){});
+}
 </script>
 </body>
 </html>
