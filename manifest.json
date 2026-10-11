@@ -1,0 +1,14 @@
+{
+  "name": "Kettlebell A/B Program Tracker",
+  "short_name": "KB Tracker",
+  "description": "8-week kettlebell A/B training program tracker — fillable, offline-capable",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f8fafc",
+  "theme_color": "#0f172a",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
