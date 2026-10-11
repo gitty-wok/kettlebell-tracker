@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#0f172a" />
+<title>Kettlebell A/B Tracker</title>
+<style>
+  :root { font-family: -apple-system, system-ui, sans-serif; color:#111827; background:#f8fafc; }
+  * { box-sizing: border-box; }
+  body { margin:0; padding-bottom:4.5rem; }
+  header { background:#0f172a; color:#fff; padding:1rem 1.1rem; position:sticky; top:0; z-index:5; }
+  header h1 { margin:0; font-size:1.05rem; }
+  header p { margin:.15rem 0 0; font-size:.75rem; color:#cbd5e1; }
+  main { max-width:760px; margin:0 auto; padding:.8rem; }
+  .card { background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding: .9rem; margin-bottom:.8rem; }
+  .weeks { display:flex; gap:4px; margin:.7rem 0; }
+  .weeks button { flex:1; padding:.5rem 0; border:none; border-radius:8px; background:#e2e8f0; font-weight:600; font-size:.8rem; cursor:pointer; }
+  .weeks button.on { background:#0f172a; color:#fff; }
+  .block { background:#fffbeb; border:1px solid #fde68a; border-radius:8px; padding:.5rem .7rem; font-size:.8rem; color:#78350f; }
+  .badge { display:inline-block; background:#eef2ff; color:#4338ca; border-radius:999px; padding:.15rem .55rem; font-size:.7rem; font-weight:600; margin-right:.3rem; }
+  .days { display:flex; gap:.5rem; margin:.8rem 0; }
+  .days button { flex:1; padding:.7rem; border-radius:10px; border:1px solid #cbd5e1; background:#fff; font-weight:700; cursor:pointer; }
+  .days button.on { background:#0f172a; color:#fff; border-color:#0f172a; }
+  .bar { height:8px; background:#e2e8f0; border-radius:99px; overflow:hidden; margin:.5rem 0; }
+  .bar > div { height:100%; background:#16a34a; width:0; transition:width .3s; }
+  h2 { font-size:1rem; margin:.4rem 0; }
+  h3 { font-size:.9rem; margin:0 0 .3rem; }
+  .ex { border:1px solid #e2e8f0; border-radius:12px; background:#fff; padding:.8rem; margin-bottom:.8rem; }
+  .meta { margin:.3rem 0; font-size:.72rem; color:#64748b; }
+  .note { font-size:.75rem; color:#64748b; margin:.2rem 0 .5rem; }
+  .row { display:flex; flex-wrap:wrap; gap:.4rem; align-items:center; margin:.4rem 0; }
+  .setrow { display:flex; flex-wrap:wrap; gap:.35rem; margin:.5rem 0; }
+  .set { display:flex; align-items:center; gap:.3rem; border:1px solid #cbd5e1; border-radius:8px; padding:.3rem .4rem; background:#f8fafc; }
+  .set.done { background:#dcfce7; border-color:#86efac; }
+  .set input[type=number] { width:3.2rem; }
+  input, textarea { border:1px solid #cbd5e1; border-radius:8px; padding:.35rem .5rem; font-size:.85rem; font-family:inherit; background:#fff; }
+  input[type=checkbox] { width:1.05rem; height:1.05rem; }
+  textarea { width:100%; min-height:52px; }
+  .wl { font-size:.68rem; color:#64748b; }
+  .warm { background:#ecfdf5; border:1px solid #a7f3d0; border-radius:10px; padding:.6rem .8rem; font-size:.78rem; color:#064e3b; margin-bottom:.8rem; }
+  .cool { background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:.6rem .8rem; font-size:.78rem; color:#1e3a8a; margin-bottom:.8rem; }
+  .rules { font-size:.78rem; color:#475569; }
+  .rules li { margin:.2rem 0; }
+  .red { color:#b91c1c; font-weight:600; }
+  .savebtn { position:fixed; bottom:1rem; right:1rem; background:#0f172a; color:#fff; border:none; border-radius:999px; padding:.75rem 1.2rem; font-weight:700; box-shadow:0 4px 12px rgba(0,0,0,.25); cursor:pointer; z-index:10; }
+  .saved { background:#16a34a !important; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Kettlebell A/B Program Tracker</h1>
+  <p>Alternate every other day · 8 weeks · 30–45 min per session</p>
+</header>
+<main id="app"></main>
+<button class="savebtn" id="saveBtn" onclick="saveAll()">Save</button>
+<script>
+var LS = "kb-ab-tracker-offline-v1";
+var DATA = {
+  A: {
+    name: "Day A — Grinds",
+    subtitle: "Strength & Stability · 3–5 sets, long rest, RPE ≤ 7",
+    warmup: "Cotter joint mobility: ankle/hip circles, cat-camel, hip hinges ×10, shoulder circles, light goblet holds (5 min)",
+    cooldown: "90/90 hip switches, couch stretch, thoracic rotations, optional dead hang (5 min)",
+    exercises: [
+      { id:"tgu",  name:"Turkish Get-Up (per side)", target:"3–5 × 1–2/side", rest:"60–90 s", rpe:"6–7", sets:10, note:"Lightest bell. Move slowly — mobility + shoulder prehab." },
+      { id:"fsq",  name:"Double Front Squat", target:"5 × 3–5", rest:"2–3 min", rpe:"7–8", sets:6, note:"Depth to comfort. Knee issues → Goblet Squat to box." },
+      { id:"cp",   name:"Clean + Press (per side)", target:"4–5 × 3–5", rest:"2–3 min", rpe:"7", sets:10, note:"Shoulder flare-up → substitute Floor Press." },
+      { id:"row",  name:"One-Arm Row (per side)", target:"3 × 8–10", rest:"60 s", rpe:"7", sets:10, note:"Strict, no torso twist. Back-health support." },
+      { id:"carry",name:"Suitcase / Front-Rack Carry", target:"3 × 40 m or 45 s", rest:"60–90 s", rpe:"7", sets:4, note:"Grip, trunk, posture. Stay tall." }
+    ]
+  },
+  B: {
+    name: "Day B — Ballistics",
+    subtitle: "Power & Conditioning · explosive, controlled rest",
+    warmup: "Hinge drills, empty-hand swings ×15, hip openers, light one-arm swings ×10/side (5 min)",
+    cooldown: "Hip flexor stretch, hamstring floss, thoracic extension over bell, easy dead hang (5 min)",
+    exercises: [
+      { id:"swing", name:"Two-Hand Swing (EMOM)", target:"5 × 10, on the minute", rest:"rest of minute", rpe:"7", sets:6, note:"Hinge, hip snap, plank at top. Power from hips, not arms." },
+      { id:"oas",  name:"One-Arm Swing / Snatch (per side)", target:"4–5 × 5–8", rest:"60–90 s", rpe:"7–8", sets:10, note:"Snatch only after one-arm swing is crisp." },
+      { id:"dcl",  name:"Double Clean", target:"4 × 5", rest:"90 s", rpe:"7", sets:5, note:"Power from hips; land quietly in the rack." },
+      { id:"farmer",name:"Farmer Carry (heavy)", target:"3 × 40 m", rest:"60 s", rpe:"8", sets:4, note:"Grip + conditioning. Don't let the bells drift." },
+      { id:"ladder",name:"Continuous Swing Ladder (optional, Wk 5+)", target:"10 min: 15 s easy / 15 s moderate", rest:"—", rpe:"6–7", sets:2, note:"Skip if back is tired." }
+    ]
+  }
+};
+var BLOCKS = [
+  { weeks:[1,2,3], label:"Accumulation", tip:"Movement quality. Same bell; add 1 set per lift each week (within time cap). Stop sets 2 reps shy of failure." },
+  { weeks:[4], label:"Deload (Wk 4)", tip:"60% of volume, same loads. Optional test: 5-min easy swing test." },
+  { weeks:[5,6,7], label:"Intensification", tip:"Move up one bell when all sets hit top reps at RPE ≤ 7. Widen EMOM (12→15 swings/min). Add the swing ladder." },
+  { weeks:[8], label:"Test & Reset", tip:"A: TGU symmetry, 2-min goblet squat test. B: 5-min one-arm swing/snatch test. Deload 3–5 days after." }
+];
+
+function freshState() {
+  var s = { week:1, day:"A", log:{} };
+  for (var w=1; w<=8; w++) { s.log[w]={};
+    ["A","B"].forEach(function(d){ s.log[w][d]={};
+      DATA[d].exercises.forEach(function(ex){ var o={ weight:"",rpe:"",notes:"",sets:[]};
+        for (var i=0;i<ex.sets;i++) o.sets.push({done:false,reps:""});
+        s.log[w][d][ex.id]=o;
+      });
+    });
+  }
+  return s;
+}
+var state = null;
+try { state = JSON.parse(localStorage.getItem(LS)); } catch(e){}
+if (!state || !state.log) state = freshState();
+
+function saveAll() {
+  try { localStorage.setItem(LS, JSON.stringify(state)); } catch(e){}
+  var b = document.getElementById("saveBtn");
+  b.textContent = "Saved ✓"; b.classList.add("saved");
+  setTimeout(function(){ b.textContent="Save"; b.classList.remove("saved"); }, 1500);
+}
+function entry(d, id) { return state.log[state.week][d][id]; }
+
+function render() {
+  var w = state.week, d = state.day, day = DATA[d];
+  var block = BLOCKS.filter(function(b){ return b.weeks.indexOf(w)>=0; })[0];
+  var total=0, done=0;
+  day.exercises.forEach(function(ex){ entry(d,ex.id).sets.forEach(function(s){ total++; if(s.done) done++; }); });
+  var pct = total ? Math.round(done/total*100) : 0;
+
+  var html = '<div class="card"><div style="font-size:.8rem;font-weight:600;color:#64748b">WEEK ' + w + ' · <span class="badge" style="margin:0">' + block.label + '</span></div>';
+  html += '<div class="weeks">';
+  for (var i=1;i<=8;i++) html += '<button class="'+(i===w?"on":"")+'" onclick="setWeek('+i+')">'+i+'</button>';
+  html += '</div><div class="block"><b>Block focus:</b> ' + block.tip + '</div></div>';
+
+  html += '<div class="days"><button class="'+(d==="A"?"on":"")+'" onclick="setDay(\'A\')">Day A — Grinds</button><button class="'+(d==="B"?"on":"")+'" onclick="setDay(\'B\')">Day B — Ballistics</button></div>';
+  html += '<h2>' + day.name + '</h2><div class="meta">' + day.subtitle + ' · ' + pct + '% of sets checked</div><div class="bar"><div style="width:'+pct+'%"></div></div>';
+  html += '<div class="warm"><b>Warm-up:</b> ' + day.warmup + '</div>';
+
+  day.exercises.forEach(function(ex, idx) {
+    var e = entry(d, ex.id);
+    html += '<div class="ex"><h3>' + (idx+1) + '. ' + ex.name + '</h3>';
+    html += '<div class="meta"><span class="badge">Target: ' + ex.target + '</span><span class="badge">Rest: ' + ex.rest + '</span><span class="badge">RPE: ' + ex.rpe + '</span></div>';
+    html += '<div class="note">' + ex.note + '</div>';
+    html += '<div class="row"><span class="wl">Bell (kg)</span><input type="number" inputmode="decimal" value="'+e.weight+'" onchange="up(\''+ex.id+'\',\'weight\',this.value)"><span class="wl">RPE felt</span><input type="number" inputmode="numeric" min="1" max="10" style="width:3.6rem" value="'+e.rpe+'" onchange="up(\''+ex.id+'\',\'rpe\',this.value)"></div>';
+    html += '<div class="setrow">';
+    e.sets.forEach(function(s, si) {
+      html += '<label class="set '+(s.done?"done":"")+'"><input type="checkbox" '+(s.done?"checked":"")+' onchange="upSet(\''+ex.id+'\','+si+',\'done\',this.checked)"><span style="font-size:.65rem;color:#64748b">S'+(si+1)+'</span><input type="number" inputmode="numeric" placeholder="reps" value="'+s.reps+'" onchange="upSet(\''+ex.id+'\','+si+',\'reps\',this.value)"></label>';
+    });
+    html += '</div>';
+    html += '<textarea placeholder="Notes (pain, form, substitutions)" onchange="up(\''+ex.id+'\',\'notes\',this.value)">'+(e.notes||"")+'</textarea></div>';
+  });
+
+  html += '<div class="cool"><b>Cool-down:</b> ' + day.cooldown + '</div>';
+  html += '<div class="card rules"><h3>Autoregulation & Safety</h3><ul>'
+    + '<li>Any set at RPE &gt; 8 or technique breaks → end that lift, move on.</li>'
+    + '<li>Two failed quality sets → cut the last exercise, finish with mobility.</li>'
+    + '<li>Poor sleep / sore back → swap Day B for mobility + easy carries.</li>'
+    + '<li>Increase load only when: pain-free, top reps hit, RPE ≤ 7 on all sets.</li>'
+    + '<li class="red">Stop if: sharp back/shoulder/knee pain, dizziness, tingling, or pain persisting after cool-down. Recurring twice → see a physio.</li>'
+    + '</ul></div>';
+  document.getElementById("app").innerHTML = html;
+}
+function esc(v){ return String(v).replace(/"/g,"&quot;"); }
+function setWeek(w){ state.week=w; render(); }
+function setDay(d){ state.day=d; render(); }
+function up(id, field, value){ entry(state.day, id)[field] = value; render(); }
+function upSet(id, si, field, value){ entry(state.day, id).sets[si][field] = value; render(); }
+
+render();
+</script>
+</body>
+</html>
